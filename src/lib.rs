@@ -56,4 +56,48 @@ mod tests {
         assert_eq!(wf.id, "2");
         assert_eq!(wf.name, "New");
     }
+
+    #[tokio::test]
+    async fn get_and_update_workflow() {
+        let server = MockServer::start().await;
+
+        // Mock GET
+        Mock::given(method("GET"))
+            .and(path("/v1/workflows/42"))
+            .and(header("X-N8N-API-KEY", "test-key"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"id": "42", "name": "Old"})),
+            )
+            .mount(&server)
+            .await;
+
+        // Mock PUT
+        Mock::given(method("PUT"))
+            .and(path("/v1/workflows/42"))
+            .and(header("X-N8N-API-KEY", "test-key"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"id": "42", "name": "New"})),
+            )
+            .mount(&server)
+            .await;
+
+        let cfg = crate::config::N8nConfig {
+            api_key: "test-key".into(),
+            host: Url::parse(&server.uri()).unwrap(),
+        };
+
+        let wf_json = crate::api::get_workflow(&cfg, "42").await.unwrap();
+        assert_eq!(wf_json["id"], "42");
+
+        let update = serde_json::json!({"id": "42", "name": "New"});
+        let updated = crate::api::update_workflow(&cfg, "42", &update)
+            .await
+            .unwrap();
+        assert_eq!(updated.name, "New");
+
+        // ensure both mocks were hit
+        assert_eq!(server.received_requests().await.unwrap().len(), 2);
+    }
 }

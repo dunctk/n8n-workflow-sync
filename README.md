@@ -19,6 +19,12 @@ cargo run -- list
 
 # Create a new workflow
 cargo run -- new "My Flow"
+
+# Download an existing workflow
+cargo run -- pull 123 workflow.json
+
+# Upload changes back to n8n
+cargo run -- push 123 workflow.json
 ```
 
 ## Development
