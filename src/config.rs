@@ -12,7 +12,9 @@ impl N8nConfig {
         let api_key = env::var("N8N_API_KEY")?;
         let mut host = env::var("N8N_HOST")?;
         host = host.trim_end_matches('/').to_string();
-        if host.ends_with("/v1") {
+        if host.ends_with("/api/v1") {
+            host = host.trim_end_matches("/api/v1").to_string();
+        } else if host.ends_with("/v1") {
             host = host.trim_end_matches("/v1").to_string();
         }
         host = format!("{}/", host);
@@ -22,7 +24,7 @@ impl N8nConfig {
 
     pub fn endpoint(&self, path: &str) -> Url {
         self.host
-            .join(&format!("v1/{}", path.trim_start_matches('/')))
+            .join(&format!("api/v1/{}", path.trim_start_matches('/')))
             .expect("valid base url")
     }
 }
@@ -45,6 +47,23 @@ mod tests {
                 let cfg = N8nConfig::from_env().unwrap();
                 assert_eq!(cfg.api_key, "test-key");
                 assert_eq!(cfg.host.as_str(), "http://localhost/");
+                assert_eq!(cfg.endpoint("workflows").as_str(), "http://localhost/api/v1/workflows");
+            },
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn strips_existing_api_paths() {
+        with_vars(
+            [
+                ("N8N_API_KEY", Some("test-key")),
+                ("N8N_HOST", Some("http://localhost/api/v1")),
+            ],
+            || {
+                let cfg = N8nConfig::from_env().unwrap();
+                assert_eq!(cfg.host.as_str(), "http://localhost/");
+                assert_eq!(cfg.endpoint("workflows").as_str(), "http://localhost/api/v1/workflows");
             },
         );
     }
