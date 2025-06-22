@@ -1,9 +1,20 @@
 use clap::{Parser, Subcommand};
+use git2::{Repository, Signature};
 use n8n_workflow_sync::{api, config};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::Context;
+
+/// Convert a workflow name into a filesystem-friendly slug
+fn slugify(name: &str) -> String {
+    name.to_lowercase()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect::<String>()
+        .trim_matches('-')
+        .to_string()
+}
 
 #[derive(Parser)]
 #[command(
@@ -59,7 +70,31 @@ async fn main() -> anyhow::Result<()> {
         Commands::New { name } => {
             let cfg = config::N8nConfig::from_env()?;
             let wf = api::create_workflow(&cfg, &name).await?;
-            println!("Created workflow {}: {}", wf.id, wf.name);
+            let wf_json = api::get_workflow(&cfg, &wf.id).await?;
+            let slug = slugify(&wf.name);
+            let dir = PathBuf::from(&slug);
+            fs::create_dir_all(&dir)?;
+            let json_path = dir.join("workflow.json");
+            let data = serde_json::to_vec_pretty(&wf_json)?;
+            fs::write(&json_path, data)?;
+
+            let repo = Repository::init(&dir)?;
+            let mut index = repo.index()?;
+            index.add_path(Path::new("workflow.json"))?;
+            index.write()?;
+            let tree_id = index.write_tree()?;
+            let tree = repo.find_tree(tree_id)?;
+            let sig = Signature::now("n8n-workflow-sync", "n8n@localhost")?;
+            repo.commit(
+                Some("HEAD"),
+                &sig,
+                &sig,
+                &format!("feat: sync from n8n (#{})", wf.id),
+                &tree,
+                &[],
+            )?;
+
+            println!("Created workflow {} in {}", wf.id, dir.display());
         }
         Commands::Pull { id, path } => {
             let cfg = config::N8nConfig::from_env()?;
