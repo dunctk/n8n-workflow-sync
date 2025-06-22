@@ -17,6 +17,36 @@ fn slugify(name: &str) -> String {
         .to_string()
 }
 
+/// Attempt to locate a default workflow JSON file in the current directory.
+///
+/// Preference is given to a file named `workflow.json`. If exactly one other
+/// `.json` file exists, that is returned. Otherwise an error is produced.
+fn default_json_path() -> anyhow::Result<PathBuf> {
+    let preferred = PathBuf::from("workflow.json");
+    if preferred.exists() {
+        return Ok(preferred);
+    }
+
+    let mut json_files = vec![];
+    for entry in fs::read_dir(".")? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().map(|ext| ext == "json").unwrap_or(false) {
+            json_files.push(path);
+        }
+    }
+
+    if json_files.len() == 1 {
+        Ok(json_files.remove(0))
+    } else if json_files.is_empty() {
+        Err(anyhow::anyhow!("No JSON files found"))
+    } else {
+        Err(anyhow::anyhow!(
+            "Multiple JSON files found. Please specify which one to push"
+        ))
+    }
+}
+
 #[derive(Parser)]
 #[command(
     author,
@@ -60,11 +90,18 @@ enum Commands {
         path: Option<PathBuf>,
     },
     /// Upload a modified workflow JSON file to the server
+    ///
+    /// If no ID or path is provided, the command will attempt to
+    /// locate a single JSON file in the current directory and read
+    /// the `id` field from it.
     Push {
-        /// ID of the workflow to update
-        id: String,
-        /// Path to the workflow JSON file to upload
-        path: PathBuf,
+        /// ID of the workflow to update. If omitted, the ID will be
+        /// read from the JSON file.
+        id: Option<String>,
+        /// Path to the workflow JSON file to upload. Defaults to
+        /// `workflow.json` or the only JSON file in the current
+        /// directory.
+        path: Option<PathBuf>,
     },
 }
 
@@ -223,11 +260,32 @@ async fn main() -> anyhow::Result<()> {
             println!("✓ Downloaded workflow {} to {}", id, json_path.display());
         }
         Commands::Push { id, path } => {
-            println!("Uploading {} to workflow {}...", path.display(), id);
+            // Determine the path to use. If none provided, try common defaults.
+            let path = match path {
+                Some(p) => p,
+                None => default_json_path().with_context(
+                    || "Unable to determine workflow JSON file. Please specify a path.",
+                )?,
+            };
+
             let data = fs::read_to_string(&path)
                 .with_context(|| format!("Failed to read {}", path.display()))?;
             let json: serde_json::Value = serde_json::from_str(&data)
                 .with_context(|| format!("Failed to parse JSON in {}", path.display()))?;
+
+            // Determine workflow ID. Command line argument overrides JSON field.
+            let id = match id {
+                Some(v) => v,
+                None => json
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+                    .ok_or_else(|| {
+                        anyhow::anyhow!("Workflow ID not provided and not found in JSON")
+                    })?,
+            };
+
+            println!("Uploading {} to workflow {}...", path.display(), id);
 
             let wf = api::update_workflow(&cfg, &id, &json)
                 .await
