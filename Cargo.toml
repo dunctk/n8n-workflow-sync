@@ -9,13 +9,18 @@ repository   = "https://github.com/dunctk/n8n-workflow-sync"
 keywords     = ["cli", "n8n", "workflow", "git"]
 
 [dependencies]
-clap        = { version = "5", features = ["derive"] }
+clap        = { version = "4", features = ["derive"] }
 reqwest     = { version = "0.12", features = ["json", "rustls-tls"] }
 tokio       = { version = "1", features = ["rt-multi-thread", "macros"] }
 serde       = { version = "1", features = ["derive"] }
 serde_json  = "1"
 confy       = "0.6"
-keyring     = "4"
 git2        = "0.20"
 anyhow      = "1"
 tracing     = "0.1"
+url         = "2"
+
+[dev-dependencies]
+wiremock = "0.6"
+serial_test = "2"
+temp-env = "0.3"
