@@ -25,20 +25,20 @@ export N8N_HOST=https://your.n8n.instance/
 export N8N_API_KEY=your-api-key
 ```
 
-Then run the binary with one of the available subcommands:
+Then run `n8n-workflow-sync` with one of the available subcommands:
 
 ```bash
 # List workflows
-cargo run -- list
+n8n-workflow-sync list
 
 # Create a new workflow
-cargo run -- new "My Flow"
+n8n-workflow-sync new "My Flow"
 
 # Download an existing workflow
-cargo run -- pull 123 workflow.json
+n8n-workflow-sync pull 123 workflow.json
 
 # Upload changes back to n8n
-cargo run -- push 123 workflow.json
+n8n-workflow-sync push 123 workflow.json
 ```
 
 ## Development
