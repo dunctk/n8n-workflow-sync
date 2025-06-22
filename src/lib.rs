@@ -12,7 +12,7 @@ mod tests {
         let server = MockServer::start().await;
 
         Mock::given(method("GET"))
-            .and(path("/v1/workflows"))
+            .and(path("/api/v1/workflows"))
             .and(header("X-N8N-API-KEY", "test-key"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "data": [{ "id": "1", "name": "Test" }]
@@ -37,7 +37,7 @@ mod tests {
         let server = MockServer::start().await;
 
         Mock::given(method("POST"))
-            .and(path("/v1/workflows"))
+            .and(path("/api/v1/workflows"))
             .and(header("X-N8N-API-KEY", "test-key"))
             .respond_with(
                 ResponseTemplate::new(200).set_body_json(serde_json::json!({
@@ -63,7 +63,7 @@ mod tests {
 
         // Mock GET
         Mock::given(method("GET"))
-            .and(path("/v1/workflows/42"))
+            .and(path("/api/v1/workflows/42"))
             .and(header("X-N8N-API-KEY", "test-key"))
             .respond_with(
                 ResponseTemplate::new(200)
@@ -74,7 +74,7 @@ mod tests {
 
         // Mock PUT
         Mock::given(method("PUT"))
-            .and(path("/v1/workflows/42"))
+            .and(path("/api/v1/workflows/42"))
             .and(header("X-N8N-API-KEY", "test-key"))
             .respond_with(
                 ResponseTemplate::new(200)

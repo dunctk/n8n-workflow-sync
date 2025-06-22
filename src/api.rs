@@ -12,31 +12,46 @@ pub struct Workflow {
     pub name: String,
 }
 
+#[derive(Deserialize)]
+struct WorkflowList {
+    data: Vec<Workflow>,
+}
+
 pub async fn list_workflows(config: &N8nConfig) -> Result<Vec<Workflow>> {
     let client = Client::new();
     let url = config.endpoint("workflows");
-    
+
     let resp = client
         .get(url)
         .header("X-N8N-API-KEY", &config.api_key)
         .send()
         .await?;
-    
+
     // Check for authentication errors first
     if resp.status() == 401 {
-        return Err(anyhow::anyhow!("Authentication failed. Please check your N8N_API_KEY"));
+        return Err(anyhow::anyhow!(
+            "Authentication failed. Please check your N8N_API_KEY"
+        ));
     }
     if resp.status() == 404 {
-        return Err(anyhow::anyhow!("API endpoint not found. Please check your N8N_HOST URL"));
+        return Err(anyhow::anyhow!(
+            "API endpoint not found. Please check your N8N_HOST URL"
+        ));
     }
-    
+
     let resp = resp.error_for_status()?;
-    
-    // n8n API returns workflow arrays directly, not wrapped in a data field
-    let workflows: Vec<Workflow> = resp.json().await
-        .map_err(|e| anyhow::anyhow!("Failed to parse response JSON: {}. This might indicate the n8n API format has changed or the server returned HTML instead of JSON.", e))?;
-    
-    Ok(workflows)
+
+    let list: WorkflowList = resp
+        .json()
+        .await
+        .map_err(|e| {
+            anyhow::anyhow!(
+                "Failed to parse response JSON: {}. This might indicate the n8n API format has changed or the server returned HTML instead of JSON.",
+                e
+            )
+        })?;
+
+    Ok(list.data)
 }
 
 pub async fn create_workflow(config: &N8nConfig, name: &str) -> Result<Workflow> {
