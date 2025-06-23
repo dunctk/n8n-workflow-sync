@@ -57,8 +57,6 @@ fn sanitize_for_update(json: &serde_json::Value) -> serde_json::Value {
         "connections",
         "settings",
         "staticData",
-        "tags",
-        "active",
     ];
 
     let mut obj = Map::new();
