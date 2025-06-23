@@ -21,6 +21,7 @@ tracing     = "0.1"
 url         = "2"
 dialoguer   = "0.11"
 self_update = "0.42"
+regex       = "1"
 
 [dev-dependencies]
 wiremock = "0.6"

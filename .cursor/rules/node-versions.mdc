@@ -1,0 +1,3 @@
+# Node versions metadata
+
+When generating or updating n8n workflows via JSON, use the `node-versions.json` file located alongside the workflow JSON to determine the latest `typeVersion` for each node. This file is generated automatically by `n8n-workflow-sync` and should not be committed to Git.
