@@ -47,6 +47,29 @@ fn default_json_path() -> anyhow::Result<PathBuf> {
     }
 }
 
+/// Remove fields not accepted by the Public API when updating a workflow.
+fn sanitize_for_update(json: &serde_json::Value) -> serde_json::Value {
+    use serde_json::{Map, Value};
+
+    let allowed = [
+        "name",
+        "nodes",
+        "connections",
+        "settings",
+        "staticData",
+        "tags",
+        "active",
+    ];
+
+    let mut obj = Map::new();
+    for key in allowed.iter() {
+        if let Some(v) = json.get(*key) {
+            obj.insert((*key).to_string(), v.clone());
+        }
+    }
+    Value::Object(obj)
+}
+
 #[derive(Parser)]
 #[command(
     author,
@@ -297,7 +320,8 @@ async fn main() -> anyhow::Result<()> {
 
             println!("Uploading {} to workflow {}...", path.display(), id);
 
-            let wf = api::update_workflow(&cfg, &id, &json)
+            let body = sanitize_for_update(&json);
+            let wf = api::update_workflow(&cfg, &id, &body)
                 .await
                 .with_context(|| format!("Failed to update workflow {}", id))?;
             println!("✓ Updated workflow {}: {}", wf.id, wf.name);
