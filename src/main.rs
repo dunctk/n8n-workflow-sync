@@ -300,6 +300,7 @@ async fn main() -> anyhow::Result<()> {
                 .repo_owner("dunctk")
                 .repo_name("n8n-workflow-sync")
                 .bin_name("n8n-workflow-sync")
+                .target("n8n-workflow-sync")
                 .show_download_progress(true)
                 .current_version(env!("CARGO_PKG_VERSION"))
                 .build()?

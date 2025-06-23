@@ -39,6 +39,9 @@ n8n-workflow-sync pull 123 workflow.json
 
 # Upload changes back to n8n
 n8n-workflow-sync push 123 workflow.json
+
+# Upgrade to the latest release
+n8n-workflow-sync upgrade
 ```
 
 ## Development
