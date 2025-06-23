@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use dialoguer::Confirm;
 use git2::{Repository, Signature};
-use n8n_workflow_sync::{api, config};
+use n8n_workflow_sync::{api, config, nodes};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -162,6 +162,10 @@ async fn main() -> anyhow::Result<()> {
             fs::write(&json_path, data)
                 .with_context(|| format!("Failed to write workflow to {}", json_path.display()))?;
 
+            nodes::save_node_versions(&dir)
+                .await
+                .with_context(|| "Failed to fetch node versions")?;
+
             // Initialize git repository
             let repo = Repository::init(&dir).with_context(|| {
                 format!("Failed to initialize git repository in {}", dir.display())
@@ -230,6 +234,10 @@ async fn main() -> anyhow::Result<()> {
             let data = serde_json::to_vec_pretty(&wf_json)?;
             fs::write(&json_path, data)
                 .with_context(|| format!("Failed to write to {}", json_path.display()))?;
+
+            nodes::save_node_versions(&dir)
+                .await
+                .with_context(|| "Failed to fetch node versions")?;
 
             // Initialise git repo if none exists
             let repo = match Repository::open(&dir) {

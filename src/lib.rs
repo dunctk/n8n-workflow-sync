@@ -1,11 +1,12 @@
 pub mod api;
 pub mod config;
+pub mod nodes;
 
 #[cfg(test)]
 mod tests {
+    use url::Url;
     use wiremock::matchers::{header, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
-    use url::Url;
 
     #[tokio::test]
     async fn list_workflows() {
@@ -39,12 +40,10 @@ mod tests {
         Mock::given(method("POST"))
             .and(path("/api/v1/workflows"))
             .and(header("X-N8N-API-KEY", "test-key"))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                    "id": "2",
-                    "name": "New"
-                })),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "id": "2",
+                "name": "New"
+            })))
             .mount(&server)
             .await;
 
