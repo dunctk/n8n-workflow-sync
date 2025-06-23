@@ -103,6 +103,8 @@ enum Commands {
         /// directory.
         path: Option<PathBuf>,
     },
+    /// Download and replace the binary with the latest release from GitHub
+    Upgrade,
 }
 
 #[tokio::main]
@@ -291,6 +293,19 @@ async fn main() -> anyhow::Result<()> {
                 .await
                 .with_context(|| format!("Failed to update workflow {}", id))?;
             println!("✓ Updated workflow {}: {}", wf.id, wf.name);
+        }
+        Commands::Upgrade => {
+            println!("Checking for updates...");
+            self_update::backends::github::Update::configure()
+                .repo_owner("dunctk")
+                .repo_name("n8n-workflow-sync")
+                .bin_name("n8n-workflow-sync")
+                .show_download_progress(true)
+                .current_version(env!("CARGO_PKG_VERSION"))
+                .build()?
+                .update()
+                .with_context(|| "Failed to upgrade to latest release")?;
+            println!("✓ Updated to latest version");
         }
     }
     Ok(())
