@@ -115,23 +115,38 @@ pub async fn update_workflow(
 ) -> Result<Workflow> {
     let client = Client::new();
     let url = config.endpoint(&format!("workflows/{}", id));
-    
+
     let resp = client
         .put(url)
         .header("X-N8N-API-KEY", &config.api_key)
         .json(data)
         .send()
         .await?;
-    
+
+    let status = resp.status();
+    let bytes = resp.bytes().await?;
+
     // Check for authentication errors first
-    if resp.status() == 401 {
-        return Err(anyhow::anyhow!("Authentication failed. Please check your N8N_API_KEY"));
+    if status == 401 {
+        return Err(anyhow::anyhow!(
+            "Authentication failed. Please check your N8N_API_KEY"
+        ));
     }
-    if resp.status() == 404 {
+    if status == 404 {
         return Err(anyhow::anyhow!("Workflow with ID {} not found", id));
     }
-    
-    let resp = resp.error_for_status()?;
-    let wf: Workflow = resp.json().await?;
+
+    if !status.is_success() {
+        // Attempt to extract a useful message from the response body
+        if let Ok(json) = serde_json::from_slice::<Value>(&bytes) {
+            if let Some(msg) = json.get("message").and_then(|v| v.as_str()) {
+                return Err(anyhow::anyhow!("HTTP {}: {}", status, msg));
+            }
+        }
+        let body = String::from_utf8_lossy(&bytes);
+        return Err(anyhow::anyhow!("HTTP {}: {}", status, body));
+    }
+
+    let wf: Workflow = serde_json::from_slice(&bytes)?;
     Ok(wf)
 }
