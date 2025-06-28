@@ -21,6 +21,11 @@ Support for additional operating systems will be added in future releases.
 
 ## Usage
 
+> **Note for macOS users**: The binary is not notarised (the maintainer has
+> not joined the Apple Developer Program). The first time you run it, macOS
+> Gatekeeper may block it. Right‑click the file in Finder, choose **Open**, and
+> confirm the prompt so that future launches work normally.
+
 Set the following environment variables so the CLI can authenticate with your n8n server:
 
 ```bash
