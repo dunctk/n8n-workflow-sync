@@ -3,6 +3,8 @@
 [![Tests](https://github.com/dunctk/n8n-workflow-sync/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/dunctk/n8n-workflow-sync/actions/workflows/test.yml)
 [![Coverage](https://codecov.io/gh/dunctk/n8n-workflow-sync/branch/main/graph/badge.svg)](https://codecov.io/gh/dunctk/n8n-workflow-sync)
 
+![logo](logo.png)
+
 `n8n-workflow-sync` is a command line tool to list and create workflows on an n8n instance. It aims to let you version control workflows locally and sync them via the n8n REST API.
 
 ## Installation
