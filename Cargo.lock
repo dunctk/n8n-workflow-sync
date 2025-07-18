@@ -1036,6 +1036,7 @@ dependencies = [
  "serial_test",
  "temp-env",
  "tokio",
+ "toml",
  "tracing",
  "url",
  "wiremock",

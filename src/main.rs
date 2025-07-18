@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use dialoguer::Confirm;
 use git2::{Repository, Signature};
-use n8n_workflow_sync::{api, config, nodes};
+use n8n_workflow_sync::{api, config, nodes, toml};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -68,6 +68,51 @@ fn sanitize_for_update(json: &serde_json::Value) -> serde_json::Value {
     Value::Object(obj)
 }
 
+/// Download workflows from a TOML configuration file
+async fn pull_from_toml(cfg: &config::N8nConfig, toml_path: &Path) -> anyhow::Result<()> {
+    let workflows_config = toml::WorkflowsToml::from_file(toml_path)
+        .with_context(|| format!("Failed to parse TOML file: {}", toml_path.display()))?;
+    
+    let active_workflows = workflows_config.active_workflows();
+    
+    if active_workflows.is_empty() {
+        println!("No active workflows found in configuration");
+        return Ok(());
+    }
+    
+    println!("Found {} active workflows to download", active_workflows.len());
+    
+    for workflow in active_workflows {
+        println!("Downloading workflow: {} ({})", workflow.name, workflow.id);
+        
+        let wf_json = api::get_workflow(cfg, &workflow.id)
+            .await
+            .with_context(|| format!("Failed to download workflow {}", workflow.id))?;
+        
+        let filename = format!("{}.json", workflow.id);
+        let json_path = Path::new(&filename);
+        
+        if json_path.exists() {
+            if !Confirm::new()
+                .with_prompt(format!("Overwrite {}?", json_path.display()))
+                .default(false)
+                .interact()?
+            {
+                println!("Skipping {}", workflow.name);
+                continue;
+            }
+        }
+        
+        let data = serde_json::to_vec_pretty(&wf_json)?;
+        fs::write(json_path, data)
+            .with_context(|| format!("Failed to write to {}", json_path.display()))?;
+        
+        println!("✓ Downloaded {} to {}", workflow.name, json_path.display());
+    }
+    
+    Ok(())
+}
+
 #[derive(Parser)]
 #[command(
     author,
@@ -103,9 +148,13 @@ enum Commands {
         name: String,
     },
     /// Download a workflow JSON file from the server
+    /// 
+    /// If no arguments are provided and workflows.toml exists in the current directory,
+    /// downloads all active workflows from the configuration file.
     Pull {
-        /// ID of the workflow to download
-        id: String,
+        /// ID of the workflow to download. If omitted and workflows.toml exists,
+        /// downloads all active workflows from the configuration.
+        id: Option<String>,
         /// Optional path to save the workflow JSON. Can be a directory
         /// or a file. Defaults to a directory named after the workflow.
         path: Option<PathBuf>,
@@ -214,6 +263,19 @@ async fn main() -> anyhow::Result<()> {
             println!("✓ Initialized git repository with initial commit");
         }
         Commands::Pull { id, path } => {
+            // Check if workflows.toml exists in current directory and no arguments provided
+            let workflows_toml = Path::new("workflows.toml");
+            if workflows_toml.exists() && id.is_none() && path.is_none() {
+                println!("Found workflows.toml, downloading all configured workflows...");
+                pull_from_toml(&cfg, workflows_toml).await?;
+                return Ok(());
+            }
+
+            // If id is not provided, show error
+            let id = id.ok_or_else(|| {
+                anyhow::anyhow!("Workflow ID is required when not using workflows.toml configuration")
+            })?;
+
             let wf_json = api::get_workflow(&cfg, &id)
                 .await
                 .with_context(|| format!("Failed to download workflow {}", id))?;
