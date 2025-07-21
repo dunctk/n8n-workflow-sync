@@ -5,6 +5,22 @@
 
 ![logo](logo.png)
 
+![n8n concept diagram](n8n-concept.png)
+
+The n8n‑workflow‑sync CLI addresses the gap in n8n's out‑of‑the‑box tooling around version control and automated deployments of your workflows. By default, n8n stores all workflow definitions in its internal database and exposes them only via its web UI. This means:
+
+* **No easy Git integration:** You can't "git diff" changes, review pull‑requests, or roll back to earlier revisions of a workflow without manually exporting/importing JSON files.
+* **Manual copy‑paste pain:** Every time you want to move a workflow from development to staging or production, you have to export it from one instance and import it into another by hand.
+* **Limited CI/CD support:** There's no straightforward way to script or automate workflow updates in build pipelines.
+
+n8n‑workflow‑sync solves these by giving you a simple CLI that:
+
+1. **Pulls** a workflow's JSON via the n8n REST API into a local directory you can `git init` and commit.
+2. Lets you **edit** the workflow JSON in your favorite editor, tracking every change in Git.
+3. **Pushes** your local edits back up to the n8n server, either interactively or non‑interactively (for CI).
+
+All configuration (endpoint) is stored in a config file, your API key lives in your OS keychain, and every pull/push becomes a Git commit. This makes workflow development as friction‑free as normal code, enables code reviews, automated deployments, and full history tracking.
+
 `n8n-workflow-sync` is a command line tool to list and create workflows on an n8n instance. It aims to let you version control workflows locally and sync them via the n8n REST API.
 
 ## Installation
